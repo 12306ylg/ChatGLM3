@@ -131,7 +131,7 @@ def get_weather(
 
 
 # append tools
-import os
+import subprocess
 import requests
 
 @register_tool
@@ -139,7 +139,7 @@ def run_cmd(
     command: Annotated[str, "system command", True],
 ) -> str:
     "run system command"
-    return run_cmd(command)
+    return subprocess.run(command).stdout.decode("utf-8")
 @register_tool
 def check_web(web: Annotated[str, "your url", True]) -> str:
     "browser web"
