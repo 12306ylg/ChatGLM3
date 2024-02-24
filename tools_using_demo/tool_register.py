@@ -1,12 +1,15 @@
 """
 这段代码是工具注册的部分，通过注册工具，让模型实现工具调用
 """
+
 import inspect
 import traceback
 from copy import deepcopy
 from pprint import pformat
 from types import GenericAlias
 from typing import get_origin, Annotated
+
+from streamlit import rerun
 
 _TOOL_HOOKS = {}
 _TOOL_DESCRIPTIONS = {}
@@ -31,16 +34,18 @@ def register_tool(func: callable):
         if not isinstance(required, bool):
             raise TypeError(f"Required for `{name}` must be a bool")
 
-        tool_params.append({
-            "name": name,
-            "description": description,
-            "type": typ,
-            "required": required
-        })
+        tool_params.append(
+            {
+                "name": name,
+                "description": description,
+                "type": typ,
+                "required": required,
+            }
+        )
     tool_def = {
         "name": tool_name,
         "description": tool_description,
-        "params": tool_params
+        "params": tool_params,
     }
 
     print("[registered tool] " + pformat(tool_def))
@@ -67,10 +72,11 @@ def get_tools() -> dict:
 
 # tools Definitions
 
+
 @register_tool
 def random_number_generator(
-        seed: Annotated[int, 'The random seed used by the generator', True],
-        range: Annotated[tuple[int, int], 'The range of the generated numbers', True],
+    seed: Annotated[int, "The random seed used by the generator", True],
+    range: Annotated[tuple[int, int], "The range of the generated numbers", True],
 ) -> int:
     """
     Generates a random number x, s.t. range[0] <= x < range[1]
@@ -83,12 +89,13 @@ def random_number_generator(
         raise TypeError("Range must be a tuple of integers")
 
     import random
+
     return random.Random(seed).randint(*range)
 
 
 @register_tool
 def get_weather(
-        city_name: Annotated[str, 'The name of the city to be queried', True],
+    city_name: Annotated[str, "The name of the city to be queried", True],
 ) -> str:
     """
     Get the current weather for `city_name`
@@ -98,9 +105,16 @@ def get_weather(
         raise TypeError("City name must be a string")
 
     key_selection = {
-        "current_condition": ["temp_C", "FeelsLikeC", "humidity", "weatherDesc", "observation_time"],
+        "current_condition": [
+            "temp_C",
+            "FeelsLikeC",
+            "humidity",
+            "weatherDesc",
+            "observation_time",
+        ],
     }
     import requests
+
     try:
         resp = requests.get(f"https://wttr.in/{city_name}?format=j1")
         resp.raise_for_status()
@@ -108,10 +122,40 @@ def get_weather(
         ret = {k: {_v: resp[k][0][_v] for _v in v} for k, v in key_selection.items()}
     except:
         import traceback
-        ret = "Error encountered while fetching weather data!\n" + traceback.format_exc()
+
+        ret = (
+            "Error encountered while fetching weather data!\n" + traceback.format_exc()
+        )
 
     return str(ret)
 
+
+# append tools
+import os
+import requests
+
+@register_tool
+def run_cmd(
+    command: Annotated[str, "system command", True],
+) -> str:
+    "run system command"
+    return run_cmd(command)
+@register_tool
+def check_web(web: Annotated[str, "your url", True]) -> str:
+    "browser web"
+    return requests.get(web).text
+@register_tool
+def scan_files(path: Annotated[str, "path to scan", True]) -> str:
+    "scan files"
+    return os.listdir(path)
+@register_tool
+def checkfile(file: Annotated[str, "your file", True]) -> str:
+    "check file"
+    return open(file, "r").read()
+@register_tool
+def checkfile_bytes(file: Annotated[str, "your file", True]) -> bytes:
+    "check file bytes"
+    return open(file, "rb").read()
 
 if __name__ == "__main__":
     print(dispatch_tool("get_weather", {"city_name": "beijing"}))
