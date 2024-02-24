@@ -3,6 +3,7 @@
 """
 
 import inspect
+
 import traceback
 from copy import deepcopy
 from pprint import pformat
@@ -129,11 +130,10 @@ def get_weather(
 
     return str(ret)
 
-
 # append tools
 import subprocess
 import requests
-
+import os
 @register_tool
 def run_cmd(
     command: Annotated[str, "system command", True],
